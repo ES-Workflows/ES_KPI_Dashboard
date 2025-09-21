@@ -1,4 +1,4 @@
-name: new Connect via VPN and Run Workflow
+name: Connect via VPN and Run Workflow
 
 on:
   workflow_dispatch:
