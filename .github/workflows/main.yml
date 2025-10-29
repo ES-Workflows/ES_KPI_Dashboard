@@ -2,87 +2,86 @@ name: Connect via VPN and Run Workflow
 
 on:
   workflow_dispatch:
+  repository_dispatch:
+    types: [manual-trigger]
   push:
     branches:
       - main
-  repository_dispatch:
-    types: [manual-trigger]
 
 jobs:
   vpn-job:
     runs-on: ubuntu-latest
 
     steps:
-    # STEP 1: Checkout your repo code (this will now be private)
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    # STEP 2: Install OpenVPN
-    - name: Install OpenVPN
-      run: sudo apt-get update && sudo apt-get install -y openvpn
+      - name: Install OpenVPN
+        run: sudo apt-get update && sudo apt-get install -y openvpn
 
-    # STEP 3: Create VPN Config File from GitHub Secret (Secure)
-    - name: Create VPN config file from secret
-      run: echo "${{ secrets.V_FILE }}" > config.ovpn
+      - name: Create VPN config file
+        run: echo "${{ secrets.V_FILE }}" > config.ovpn
 
-    # STEP 4: Create VPN auth.txt from GitHub Secrets
-    - name: Create VPN auth.txt
-      run: |
-        echo "${{ secrets.VU }}" > auth.txt
-        echo "${{ secrets.VP }}" >> auth.txt
+      - name: Create VPN auth file
+        env:
+          VPN_USERNAME: ${{ secrets.VU }}
+          VPN_PASSWORD: ${{ secrets.VP }}
+        run: |
+          echo "$VPN_USERNAME" > auth.txt
+          echo "$VPN_PASSWORD" >> auth.txt
 
-    # STEP 5: Start VPN Connection
-    - name: Start VPN
-      run: |
-        sudo openvpn --config config.ovpn --auth-user-pass auth.txt --daemon
-        sleep 30
+      - name: Start VPN Connection
+        run: |
+          sudo openvpn --config config.ovpn --auth-user-pass auth.txt --daemon
+          echo "Waiting 30 seconds for VPN to establish..."
+          sleep 30
 
-    # STEP 6: Install Microsoft ODBC Driver AFTER VPN is up (fixes DNS issue)
-    - name: Install ODBC Driver 17 for SQL Server
-      run: |
-        curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-        curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
-        sudo apt-get update
-        sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17
-        sudo apt-get install -y unixodbc-dev
+      - name: Install ODBC Driver 17 for SQL Server (with retry)
+        run: |
+          set -e
+          retry_count=0
+          until [ $retry_count -ge 5 ]
+          do
+            echo "Attempt $(($retry_count+1)) to install ODBC Driver..."
+            curl -sSf https://packages.microsoft.com/config/ubuntu/20.04/prod.list -o mssql-release.list && \
+            sudo cp mssql-release.list /etc/apt/sources.list.d/ && \
+            wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg && \
+            sudo cp microsoft.gpg /etc/apt/trusted.gpg.d/ && \
+            sudo apt-get update && \
+            sudo ACCEPT_EULA=Y apt-get install -y msodbcsql17 unixodbc-dev && break
+            retry_count=$((retry_count+1))
+            echo "Retry in 10 seconds..."
+            sleep 10
+          done
 
-    # STEP 7: Create SSH key from secret
-    - name: Create SSH key
-      run: |
-        echo "${{ secrets.ROK }}" > rokl.pem
-        chmod 600 rokl.pem
+      - name: Write SSH key to file
+        run: |
+          echo "${{ secrets.ROK }}" > rokl.pem
+          chmod 600 rokl.pem
 
-    # STEP 8: Set up Python environment
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'  # Use a stable version supported in production
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13.1'
 
-    # STEP 9: Install Python dependencies
-    - name: Install Python packages
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    # STEP 10: Run your main Python data sync script
-    - name: Run Data Pipeline Script
-      run: python sqlconn3.py
-      env:
-        SSH_KEY_PATH: ./rokl.pem
-        SSH_KEY: ${{ secrets.ROK }}
-        MSH: ${{ secrets.MSH }}
-        SSH: ${{ secrets.SSH }}
-        SSU: ${{ secrets.SSU }}
-        DBH: ${{ secrets.DBH }}
-        MSU: ${{ secrets.MSU }}
-        MSP: ${{ secrets.MSP }}
-        MSN: ${{ secrets.MSN }}
-        ASS: ${{ secrets.ASS }}
-        ASD: ${{ secrets.ASD }}
-        ASU: ${{ secrets.ASU }}
-        ASP: ${{ secrets.ASP }}
-
-
-    # STEP 11 (Optional): Clean up sensitive files
-    - name: Clean up
-      run: rm -f auth.txt config.ovpn rokl.pem
+      - name: Run Python Script
+        run: python sqlconn3.py
+        env:
+          SSH_KEY_PATH: ./rokl.pem
+          SSH_KEY: ${{ secrets.ROK }}
+          MSH: ${{ secrets.MSH }}
+          SSH: ${{ secrets.SSH }}
+          SSU: ${{ secrets.SSU }}
+          DBH: ${{ secrets.DBH }}
+          MSU: ${{ secrets.MSU }}
+          MSP: ${{ secrets.MSP }}
+          MSN: ${{ secrets.MSN }}
+          ASS: ${{ secrets.ASS }}
+          ASD: ${{ secrets.ASD }}
+          ASU: ${{ secrets.ASU }}
+          ASP: ${{ secrets.ASP }}
