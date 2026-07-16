@@ -53,7 +53,7 @@ jobs:
           chmod 600 rokl.pem
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: '3.13.1' # Replace with your Python version, e.g., '3.9'
           
