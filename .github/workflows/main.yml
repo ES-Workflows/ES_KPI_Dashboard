@@ -22,7 +22,7 @@ jobs:
         run: |
           set -e
           UBUNTU_VERSION=$(. /etc/os-release && echo "$VERSION_ID")
-          curl -fsSLO https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION)/packages-microsoft-prod.deb
+          curl -fsSLO https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION}/packages-microsoft-prod.deb
           sudo dpkg -i --force-confnew packages-microsoft-prod.deb
           rm packages-microsoft-prod.deb
           sudo apt-get update
