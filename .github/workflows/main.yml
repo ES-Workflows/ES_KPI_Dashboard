@@ -20,11 +20,16 @@ jobs:
 
       - name: Install ODBC Driver 18
         run: |
-          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-          curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          set -e
+          UBUNTU_VERSION =$(. /etc/os-release && echo "$VERSION_ID")
+          curl -fsSLO "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION)/packages-microsoft-prod.deb"
+          # curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
+          sudo dpkg -i packages-microsoft-prod.deb
+          rm packages-microsoft-prod.deb
           sudo apt-get update
-          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18
-          sudo apt-get install -y unixodbc-dev
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+          odbcinst -q -d
+          # sudo apt-get install -y unixodbc-dev
 
       - name: Install OpenVPN
         run: sudo apt-get install -y openvpn 
