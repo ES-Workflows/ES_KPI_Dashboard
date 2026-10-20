@@ -21,7 +21,7 @@ jobs:
       - name: Install ODBC Driver 18
         run: |
           set -e
-          UBUNTU_VERSION =$(. /etc/os-release && echo "$VERSION_ID")
+          UBUNTU_VERSION=$(. /etc/os-release && echo "$VERSION_ID")
           curl -fsSLO "https://packages.microsoft.com/config/ubuntu/${UBUNTU_VERSION)/packages-microsoft-prod.deb"
           # curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/mssql-release.list
           sudo dpkg -i packages-microsoft-prod.deb
