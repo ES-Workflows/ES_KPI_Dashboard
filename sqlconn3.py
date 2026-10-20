@@ -44,7 +44,7 @@ azure_sql_config = {
     "database": ASD,
     "username": ASU,
     "password": ASP,
-    "driver": "ODBC Driver 17 for SQL Server", 
+    "driver": "ODBC Driver 18 for SQL Server", 
 }
 
 # Azure SQL Table Name
